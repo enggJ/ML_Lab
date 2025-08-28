@@ -1,27 +1,29 @@
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsClassifier
+import numpy as np  
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
 
-df = pd.read_csv("StealthPhisher2025.csv")
+# Load dataset
+df = pd.read_csv("stealthphisher2025.csv")
 
-# Encode the Label column (Phishing = 1, Legitimate = 0)
-df['Label'] = df['Label'].map({'Legitimate': 0, 'Phishing': 1})
+# Keep only numeric features and drop classification target
+df_numeric = df.select_dtypes(include=[np.number]).copy()
+X = df_numeric.drop(columns=['ShannonEntropy'])  # Remove pseudo regression target
 
-# Select numeric features and target
-X = df.select_dtypes(include=[np.number])
-y = df['Label']
+# Elbow plot calculation
+distortions = []
+k_values = range(2, 20)  # As per instructions
 
-# Split into train and test sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+for k in k_values:
+    kmeans = KMeans(n_clusters=k, random_state=42, n_init="auto")
+    kmeans.fit(X)
+    distortions.append(kmeans.inertia_)
 
-# Train the kNN model with k = 3
-knn = KNeighborsClassifier(n_neighbors=3)
-knn.fit(X_train, y_train)
-
-y_pred = knn.predict(X_test)
-print("Predictions on test set:\n", y_pred)
-
-sample = X_test.iloc[0]
-predicted_label = knn.predict([sample])
-print("\nPrediction for the first test vector:", predicted_label[0])
+# Plot the elbow graph
+plt.figure(figsize=(6, 4))
+plt.plot(k_values, distortions, marker='o')
+plt.title("Elbow Method for Optimal k")
+plt.xlabel("Number of Clusters (k)")
+plt.ylabel("Distortion (Inertia)")
+plt.grid(True)
+plt.show()

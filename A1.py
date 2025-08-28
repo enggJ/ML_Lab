@@ -1,28 +1,31 @@
 import pandas as pd
-import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
 
-df = pd.read_csv("StealthPhisher2025.csv")
+# Load dataset
+df = pd.read_csv("stealthphisher2025.csv")
 
-# Drop non-numeric columns
-df_numeric = df.select_dtypes(include=[np.number])
-labels = df['Label']
+# Select one numerical column as input and one as target
+# Use 'LengthOfURL' to predict 'ShannonEntropy' as per instructions
+X = df[['LengthOfURL']]          # Feature (independent variable)
+y = df['ShannonEntropy']         # Pseudo target for regression
 
-class1 = df_numeric[labels == 'Phishing']
-class2 = df_numeric[labels == 'Legitimate']
+# Split data into training and testing
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# Mean vector (centroid) for each class
-centroid1 = class1.mean(axis=0)
-centroid2 = class2.mean(axis=0)
+# Function to train linear model
+def train_linear_model(X_train, y_train):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
 
-# Spread (standard deviation) for each class
-spread1 = class1.std(axis=0)
-spread2 = class2.std(axis=0)
+# Function to predict using model
+def predict(model, X):
+    return model.predict(X)
 
-# Euclidean distance between centroids
-interclass_distance = np.linalg.norm(centroid1 - centroid2)
 
-print("Centroid Phishing:\n", centroid1)
-print("Centroid Legitimate:\n", centroid2)
-print("Intraclass Spread Phishing:\n", spread1)
-print("Intraclass Spread Legitimate:\n", spread2)
-print("Interclass Distance:", interclass_distance)
+model = train_linear_model(X_train, y_train)
+y_train_pred = predict(model, X_train)
+y_test_pred = predict(model, X_test)
+print("Train Predictions Sample:", y_train_pred[:5])
+print("Test Predictions Sample:", y_test_pred[:5])

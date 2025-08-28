@@ -1,18 +1,52 @@
 import pandas as pd
-import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, r2_score
+import numpy as np
 
-df = pd.read_csv("StealthPhisher2025.csv")
+df = pd.read_csv("stealthphisher2025.csv")
 
-feature = 'LengthOfURL'
-data = df[feature]
+X = df[['LengthOfURL']]           
+y = df['ShannonEntropy']          
 
-# Plot the histogram
-plt.hist(data, bins=20, edgecolor='black')
-plt.title(f'Histogram of {feature}')
-plt.xlabel(feature)
-plt.ylabel('Frequency')
-plt.grid(True)
-plt.show()
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
-print("Mean:", data.mean())
-print("Variance:", data.var())
+def train_linear_model(X_train, y_train):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+def predict(model, X):
+    return model.predict(X)
+
+# Function to calculate regression metrics
+def evaluate_regression(y_true, y_pred):
+    mse = mean_squared_error(y_true, y_pred)
+    rmse = np.sqrt(mse)
+    mape = mean_absolute_percentage_error(y_true, y_pred)
+    r2 = r2_score(y_true, y_pred)
+    return mse, rmse, mape, r2
+
+# Train the model and make predictions
+model = train_linear_model(X_train, y_train)
+y_train_pred = predict(model, X_train)
+y_test_pred = predict(model, X_test)
+
+# Evaluate model on train and test
+train_metrics = evaluate_regression(y_train, y_train_pred)
+test_metrics = evaluate_regression(y_test, y_test_pred)
+
+# Print results
+print("Train Metrics:")
+print(f"  MSE  : {train_metrics[0]:.4f}")
+print(f"  RMSE : {train_metrics[1]:.4f}")
+print(f"  MAPE : {train_metrics[2]:.4f}")
+print(f"  R^2  : {train_metrics[3]:.4f}")
+
+print("\nTest Metrics:")
+print(f"  MSE  : {test_metrics[0]:.4f}")
+print(f"  RMSE : {test_metrics[1]:.4f}")
+print(f"  MAPE : {test_metrics[2]:.4f}")
+print(f"  R^2  : {test_metrics[3]:.4f}")

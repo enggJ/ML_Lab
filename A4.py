@@ -1,18 +1,31 @@
 import pandas as pd
-import numpy as np  
+from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split
+import numpy as np
 
-df = pd.read_csv("StealthPhisher2025.csv")
+# Load the dataset
+df = pd.read_csv("stealthphisher2025.csv")
 
-# Encode class labels: 'Legitimate' -> 0, 'Phishing' -> 1
-df['Label'] = df['Label'].map({'Legitimate': 0, 'Phishing': 1})
+# Drop non-numeric columns + the label (classification target)
+df_numeric = df.select_dtypes(include=[np.number]).copy()
+X = df_numeric.drop(columns=['ShannonEntropy'])  # Optional: remove pseudo-regression target too
 
-# Select numeric features (input) and target labels (output)
-X = df.select_dtypes(include=[np.number])
-y = df['Label']
+# Split is not mandatory for clustering, but we can use full dataset for clustering
+# Function to perform k-means clustering
+def perform_kmeans(X, n_clusters=2, random_state=42):
+    kmeans = KMeans(n_clusters=n_clusters, random_state=random_state, n_init="auto")
+    kmeans.fit(X)
+    return kmeans
 
-# Split the dataset: 70% train, 30% test
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+# Main clustering call
+kmeans_model = perform_kmeans(X)
 
-print("Training Set Size:", X_train.shape)
-print("Testing Set Size:", X_test.shape)
+# Get clustering outputs
+cluster_labels = kmeans_model.labels_
+cluster_centers = kmeans_model.cluster_centers_
+
+# Print results
+print("Cluster Labels (first 10):", cluster_labels[:10])
+print("\nCluster Centers (shape):", cluster_centers.shape)
+print("\nCluster Centers (first 2):")
+print(cluster_centers[:2])

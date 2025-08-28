@@ -1,22 +1,42 @@
 import pandas as pd
-import numpy as np  
-from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
+import numpy as np
 
-df = pd.read_csv("StealthPhisher2025.csv")
+# Load the dataset
+df = pd.read_csv("stealthphisher2025.csv")
 
-# Encode 'Label' column to 0 and 1
-df['Label'] = df['Label'].map({'Legitimate': 0, 'Phishing': 1})
+# Keep only numeric features and remove classification target
+df_numeric = df.select_dtypes(include=[np.number]).copy()
+X = df_numeric.drop(columns=['ShannonEntropy'])  # Remove pseudo regression target if used earlier
 
-# Select numeric columns for features (X) and target label (y)
-X = df.select_dtypes(include=[np.number])
-y = df['Label']
+# Optional: sample for faster metric computation
+sample_frac = 0.2  # Use 20% of data for metrics
+X_sample = X.sample(frac=sample_frac, random_state=42)
 
-# Split into train and test sets (70% train, 30% test)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+# Function to perform k-means clustering
+def perform_kmeans(X, n_clusters=2, random_state=42):
+    kmeans = KMeans(n_clusters=n_clusters, random_state=random_state, n_init="auto")
+    kmeans.fit(X)
+    return kmeans
 
-# Train the kNN classifier with k = 3
-knn = KNeighborsClassifier(n_neighbors=3)
-knn.fit(X_train, y_train)
+# Function to calculate clustering metrics
+def evaluate_clustering(X, labels):
+    sil_score = silhouette_score(X, labels)
+    ch_score = calinski_harabasz_score(X, labels)
+    db_score = davies_bouldin_score(X, labels)
+    return sil_score, ch_score, db_score
 
-print(" kNN model trained successfully with k = 3.")
+# Run k-means on full dataset
+kmeans_model = perform_kmeans(X)
+
+# Predict labels for sample
+sample_labels = kmeans_model.predict(X_sample)
+
+# Get metrics (on sample for speed)
+silhouette, ch, db = evaluate_clustering(X_sample, sample_labels)
+
+print("Clustering Evaluation Metrics (k=2) — using sample:")
+print(f"  Silhouette Score       : {silhouette:.4f}")
+print(f"  Calinski-Harabasz Score: {ch:.4f}")
+print(f"  Davies-Bouldin Index   : {db:.4f}")
