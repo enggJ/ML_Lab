@@ -1,38 +1,60 @@
+# A3.py
 import pandas as pd
-import numpy as np
-from math import log2
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.metrics import accuracy_score
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
+from xgboost import XGBClassifier
+from catboost import CatBoostClassifier
 
 # Load dataset
 df = pd.read_csv("stealthphisher2025.csv")
 
-# Equal width binning
-def equal_width_binning(series, bins=4):
-    return pd.cut(series, bins=bins, labels=False)
+df['Label'] = LabelEncoder().fit_transform(df['Label'])
+df = df.drop(columns=["URL", "Domain"])
 
-# Entropy
-def entropy(series):
-    values, counts = np.unique(series, return_counts=True)
-    probabilities = counts / counts.sum()
-    return -np.sum([p * log2(p) for p in probabilities if p > 0])
+if df['TLD'].dtype == "object":
+    df['TLD'] = LabelEncoder().fit_transform(df['TLD'])
 
-# Information gain
-def information_gain(df, feature, target):
-    total_entropy = entropy(df[target])
-    values, counts = np.unique(df[feature], return_counts=True)
-    weighted_entropy = np.sum([
-        (counts[i] / np.sum(counts)) * entropy(df[df[feature] == values[i]][target])
-        for i in range(len(values))
-    ])
-    return total_entropy - weighted_entropy
+X = df.drop(columns=["Label"])
+y = df["Label"]
 
-# Convert continuous to categorical
-categorical_df = df.copy()
-for col in df.columns:
-    if df[col].dtype != 'object' and col != 'Label':
-        categorical_df[col] = equal_width_binning(df[col], bins=4)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42, stratify=y
+)
 
-# Find root node
-ig_scores = {col: information_gain(categorical_df, col, 'Label') for col in categorical_df.columns if col != 'Label'}
-root_node = max(ig_scores, key=ig_scores.get)
-print("Root Node =", root_node)
-print("Information Gains:", ig_scores)
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Define classifiers
+models = {
+    "SVM": SVC(probability=True),
+    "DecisionTree": DecisionTreeClassifier(),
+    "RandomForest": RandomForestClassifier(),
+    "AdaBoost": AdaBoostClassifier(),
+    "NaiveBayes": GaussianNB(),
+    "MLP": MLPClassifier(max_iter=500),
+    "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric="logloss"),
+    "CatBoost": CatBoostClassifier(verbose=0)
+}
+
+results = []
+
+for name, clf in models.items():
+    clf.fit(X_train, y_train)
+    y_pred_train = clf.predict(X_train)
+    y_pred_test = clf.predict(X_test)
+    results.append({
+        "Model": name,
+        "Train Accuracy": accuracy_score(y_train, y_pred_train),
+        "Test Accuracy": accuracy_score(y_test, y_pred_test)
+    })
+
+# Show results
+results_df = pd.DataFrame(results)
+print(results_df)
