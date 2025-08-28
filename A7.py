@@ -1,29 +1,33 @@
 import pandas as pd
-import numpy as np  
-from sklearn.cluster import KMeans
+import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import LabelEncoder
 
-# Load dataset
 df = pd.read_csv("stealthphisher2025.csv")
 
-# Keep only numeric features and drop classification target
-df_numeric = df.select_dtypes(include=[np.number]).copy()
-X = df_numeric.drop(columns=['ShannonEntropy'])  # Remove pseudo regression target
+features = ['LengthOfURL', 'PathLength']
+X = df[features].values
 
-# Elbow plot calculation
-distortions = []
-k_values = range(2, 20)  # As per instructions
+le = LabelEncoder()
+y = le.fit_transform(df['Label'])
 
-for k in k_values:
-    kmeans = KMeans(n_clusters=k, random_state=42, n_init="auto")
-    kmeans.fit(X)
-    distortions.append(kmeans.inertia_)
+clf = DecisionTreeClassifier(max_depth=4)
+clf.fit(X, y)
 
-# Plot the elbow graph
-plt.figure(figsize=(6, 4))
-plt.plot(k_values, distortions, marker='o')
-plt.title("Elbow Method for Optimal k")
-plt.xlabel("Number of Clusters (k)")
-plt.ylabel("Distortion (Inertia)")
-plt.grid(True)
+x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+xx, yy = np.meshgrid(np.arange(x_min, x_max, 1),
+                     np.arange(y_min, y_max, 1))
+
+Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+Z = Z.reshape(xx.shape)
+
+# Plot
+plt.figure(figsize=(10, 6))
+plt.contourf(xx, yy, Z, alpha=0.3)
+plt.scatter(X[:, 0], X[:, 1], c=y, edgecolors='k', marker='o')
+plt.xlabel(features[0])
+plt.ylabel(features[1])
+plt.title("Decision Boundary of Decision Tree (A7)")
 plt.show()
