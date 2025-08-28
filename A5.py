@@ -1,39 +1,22 @@
-# A5_knn_grid_varying_k.py
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+import numpy as np  
+from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.preprocessing import LabelEncoder
 
-# Load dataset
-df = pd.read_csv('StealthPhisher2025.csv')
+df = pd.read_csv("StealthPhisher2025.csv")
 
-# Encode labels as integers (0, 1)
-df['Label'] = LabelEncoder().fit_transform(df['Label'])
+# Encode 'Label' column to 0 and 1
+df['Label'] = df['Label'].map({'Legitimate': 0, 'Phishing': 1})
 
-# Use two selected features and first 20 rows
-features = ['LengthOfURL', 'DigitCntInURL']
-X_train = df[features].head(20)
-y_train = df['Label'].head(20)
+# Select numeric columns for features (X) and target label (y)
+X = df.select_dtypes(include=[np.number])
+y = df['Label']
 
-# Create test grid
-x_min, x_max = X_train[features[0]].min() - 1, X_train[features[0]].max() + 1
-y_min, y_max = X_train[features[1]].min() - 1, X_train[features[1]].max() + 1
-xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.5),
-                     np.arange(y_min, y_max, 0.5))
-test_points = pd.DataFrame(np.c_[xx.ravel(), yy.ravel()], columns=features)
+# Split into train and test sets (70% train, 30% test)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-# Test different k values
-for k in [1, 3, 5, 7, 9]:
-    knn = KNeighborsClassifier(n_neighbors=k)
-    knn.fit(X_train, y_train)
-    Z = knn.predict(test_points).astype(int).reshape(xx.shape)
+# Train the kNN classifier with k = 3
+knn = KNeighborsClassifier(n_neighbors=3)
+knn.fit(X_train, y_train)
 
-    plt.figure(figsize=(7, 6))
-    plt.contourf(xx, yy, Z, alpha=0.3, cmap='coolwarm')
-    plt.scatter(X_train[features[0]], X_train[features[1]], c=y_train, edgecolor='k')
-    plt.title(f"A5: kNN Decision Boundary (k={k})")
-    plt.xlabel(features[0])
-    plt.ylabel(features[1])
-    plt.grid(True)
-    plt.show()
+print(" kNN model trained successfully with k = 3.")

@@ -1,19 +1,22 @@
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.spatial import distance
 
-np.random.seed(0)
-X = np.random.uniform(1, 10, size=(20, 2))
-labels = np.random.choice([0, 1], size=20)
+df = pd.read_csv("StealthPhisher2025.csv")
+df_numeric = df.select_dtypes(include=[np.number])
 
-class0 = X[labels == 0]
-class1 = X[labels == 1]
+# Select two vectors
+vec1 = df_numeric.iloc[0]
+vec2 = df_numeric.iloc[1]
 
-plt.figure(figsize=(8, 6))
-plt.scatter(class0[:, 0], class0[:, 1], color='blue', label='Class 0 (Blue)')
-plt.scatter(class1[:, 0], class1[:, 1], color='red', label='Class 1 (Red)')
-plt.xlabel('Feature X')
-plt.ylabel('Feature Y')
-plt.title('Scatter Plot of Training Data (20 Points)')
-plt.legend()
+# Minkowski distances
+minkowski_distances = [distance.minkowski(vec1, vec2, p=r) for r in range(1, 11)]
+
+# Plot
+plt.plot(range(1, 11), minkowski_distances, marker='o')
+plt.title("Minkowski Distance from r=1 to 10")
+plt.xlabel("r")
+plt.ylabel("Distance")
 plt.grid(True)
 plt.show()
